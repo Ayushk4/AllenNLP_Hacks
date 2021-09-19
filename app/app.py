@@ -29,7 +29,7 @@ from libs.utils import (
 import openai
 import meta
 
-from pipeline_utils import add_links, print_stars, rank_gpt_texts
+from pipeline_utils import add_links, print_stars, rank_gpt_texts, Scorer
 
 class SpeechToText:
     def __init__(
@@ -70,6 +70,8 @@ class SpeechToText:
         self.ctc_processor = None
         self.ctc_samplerate = None
         self.ctc_model = None
+
+        self.scorer = Scorer()
 
     def recording(self, duration_in_seconds=10):
         recording = sd.rec(
@@ -349,7 +351,8 @@ def main():
         info.info('Running GPT-3: "Any sufficiently advanced technology is indistinguishable from magic." ― Arthur C. Clarke')
         response = openai.Completion.create(engine="ada", prompt=input_text, max_tokens=50, n=5)
         print(response)
-        response_texts, gpt_scores = rank_gpt_texts([r['text'].replace("\n", " ") for r in response["choices"]])
+        response_texts, gpt_scores = tts.scorer.score([r['text'].replace("\n", " ") for r in response["choices"]])
+        print(response_texts, gpt_scores)
         # linked_output = add_links(response_texts[0])
         # printable_output = linked_output[1]
 

@@ -2,7 +2,7 @@ import wikipedia
 import spacy
 import nltk
 from nltk.corpus import stopwords
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer,
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 import torch
 
 stop_words = set(stopwords.words('english') + \
@@ -71,18 +71,27 @@ class Scorer:
     def __init__(self):
         config = AutoConfig.from_pretrained('bert-base-cased')
     
-        self.tokenizer = AutoTokenizer.from_pretrained('bert-base-cased', use_fast=not args.use_slow_tokenizer)
+        self.tokenizer = AutoTokenizer.from_pretrained('bert-base-cased')
         self.model = AutoModelForSequenceClassification.from_pretrained(
                 'bert-base-cased',
                 config=config,
             )
+        print("Model created")
+        try:
+            self.model.load_state_dict(torch.load('../models/cpu_model.pt'))
+            print("Model loaded")
+        except:
+            pass
 
     def score(self, candidatas, input_question=None):
-        tokens = self.tokenizer(*candidatas, padding="max_length")
-        print("Model created")
-        self.model.load_state_dict(torch.load('../models/cpu_model.pt'))
-        self.model.eval()
-        print("Model loaded")
+        text_list = [self.tokenizer(text.lower())['input_ids']
+                                for text in candidatas]
+        print(text_list)
+        logits = [self.model(torch.LongTensor([txt])).logits.tolist()[0][0]
+                for txt in text_list]
+        print(logits)
+        s = sorted([(c,s) for c, s in zip(candidatas, logits)], key = lambda x: x[1])
+        return [x[0] for x in s], [x[1] for x in s]
 
 if __name__ == "__main__":
     example_text = "Gluten intolerance remains fairly rare, and often not particularly severe. We have higher expectations for our own health now that we ever had in the past, so historically, people with a sensitivity to gluten may have just ignored it.\n\nFurther, while many people relied on wheat-based food products, it wasn't the only diet out there, and only became as dominant as it is now in the 20th century."
