@@ -39,10 +39,10 @@ def plot_result(result):
         x=scores,
         y=labels,
         orientation='h',
-        labels={'x': 'Confidence', 'y': 'Label'},
+        labels={'x': 'Rating', 'y': 'Label'},
         text=scores,
         range_x=(0, 115),
-        title=f'Speech Emotion Recognition',
+        title=f'Scoring the GPT-3 Outputs',
         color=np.linspace(0, 1, len(scores)),
         color_continuous_scale='Viridis'
     )

@@ -18,6 +18,13 @@
     border-radius: 15px;
     border: 1px solid #46e0996b;
 }
+.ctc-box-gpt {
+    background: #31333f;
+    padding: 10px;
+    border-radius: 15px;
+    border: 1px solid #23242c;
+}
+
 div.mt {
     margin-top: 50px;
 }

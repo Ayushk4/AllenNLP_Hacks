@@ -27,10 +27,9 @@ from libs.utils import (
 )
 
 import openai
-import wikipedia
 import meta
 
-from add_links import add_links
+from pipeline_utils import add_links, print_stars, rank_gpt_texts
 
 class SpeechToText:
     def __init__(
@@ -258,15 +257,15 @@ def main():
 
     with col1:
         st.markdown(meta.INFO, unsafe_allow_html=True)
-        input_text = st.text_area("Type your text minimum (10 chars)")#, "Type your question here")#audio_file = st.file_uploader("Upload an Audio File",type=['wav'])
+        input_text = st.text_area(u"Type your text minimum (10 chars)")#, "Type your question here")#audio_file = st.file_uploader("Upload an Audio File",type=['wav'])
         text_btn = st.button("Submit Text")
         duration = st.slider('Choose your recording duration (seconds)', 5, 20, 5)
         recorder_btn = st.button("Recording")
 
-    st.markdown(
-        "<hr /> GPT3 Says:",
-        unsafe_allow_html=True
-    )
+    # st.markdown(
+    #     "<hr /> GPT3 Says:",
+    #     unsafe_allow_html=True
+    # )
 
     gpt_text = st.empty()
 
@@ -302,6 +301,39 @@ def main():
                     unsafe_allow_html=True
                 )
 
+                # print(input_text, type(input_text))
+                openai.api_key = os.getenv("OPENAI_KEY")
+                info.info('Running GPT-3: "Any sufficiently advanced technology is indistinguishable from magic." ― Arthur C. Clarke')
+                response = openai.Completion.create(engine="ada", prompt=result["ctc"], max_tokens=50, n=5)
+                print(response)
+                response_texts, gpt_scores = rank_gpt_texts([r['text'].replace("\n", " ") for r in response["choices"]])
+                # linked_output = add_links(response_texts[0])
+                # printable_output = linked_output[1]
+
+                # html_output = f'<p class="ctc-box-gpt ltr"><strong>GPT Says: {print_stars(round(gpt_scores[0]))}</strong><br>{printable_output}</p>'
+
+                # for i in range(1, len(response_texts)):
+                #     html_output += f'<p class="ctc-box-gpt ltr"><strong>Alternative Text {i+1}: {print_stars(round(gpt_scores[i]))}</strong><br>{response_texts[i]}</p>'
+
+                linked_outputs = [add_links(response_text) for response_text in response_texts]
+
+                html_output = f'<p class="ctc-box-gpt ltr"><strong>GPT-3: I may be wrong, but here is my opinion {print_stars(round(gpt_scores[0]*len(gpt_scores)))}</strong><br>{linked_outputs[0][1]}</p>'
+
+                for i in range(1, len(response_texts)):
+                    html_output += f'<p class="ctc-box-gpt ltr"><strong>Alternative Text {i+1}: {print_stars(round(gpt_scores[i]*len(gpt_scores)))}</strong><br>{linked_outputs[i][1]}</p>'
+                
+
+                gpt_text.markdown(
+                            html_output,
+                            unsafe_allow_html=True
+                        )
+
+                info.info(f"GPT-3 Post Processing ...")
+
+                plot_result([{"label": f"Output {i+1}", "score": score} for i, score in enumerate(gpt_scores)])
+                info.empty()
+
+
                 # info.info(f"Recognizing emotion ...")
                 # plot_result(result["cf"])
 
@@ -314,48 +346,35 @@ def main():
     if text_btn and len(input_text)>9:
         # print(input_text, type(input_text))
         openai.api_key = os.getenv("OPENAI_KEY")
-
-        response = openai.Completion.create(engine="ada", prompt=input_text, max_tokens=100)
+        info.info('Running GPT-3: "Any sufficiently advanced technology is indistinguishable from magic." ― Arthur C. Clarke')
+        response = openai.Completion.create(engine="ada", prompt=input_text, max_tokens=50, n=5)
         print(response)
-        linked_output = add_links(response["choices"][0]["text"])
-        # test_op = """<a href="https://simple.wikipedia.org/wiki/Gluten-free_diet">Gluten intolerance</a> remains fairly rare, and often not particularly severe. We have higher expectations for our own health now that we ever had in the past, so historically, people with a sensitivity to gluten may have just ignored it.
+        response_texts, gpt_scores = rank_gpt_texts([r['text'].replace("\n", " ") for r in response["choices"]])
+        # linked_output = add_links(response_texts[0])
+        # printable_output = linked_output[1]
 
-            # Further, while many people relied on <a href="https://simple.wikipedia.org/wiki/Wheat">wheat-based food products</a>, it wasn't the only diet out there, and only became as dominant as it is now in the 20th century."""
-        printable_output = linked_output[1].replace("\n", " ")
+        # html_output = f'<p class="ctc-box-gpt ltr"><strong>GPT Says: {print_stars(round(gpt_scores[0]))}</strong><br>{printable_output}</p>'
+
+        # for i in range(1, len(response_texts)):
+        #     html_output += f'<p class="ctc-box-gpt ltr"><strong>Alternative Text {i+1}: {print_stars(round(gpt_scores[i]))}</strong><br>{response_texts[i]}</p>'
+
+        linked_outputs = [add_links(response_text) for response_text in response_texts]
+
+        html_output = f'<p class="ctc-box-gpt ltr" ><strong>GPT-3: I may be wrong, but here is my opinion {print_stars(round(gpt_scores[0]*len(gpt_scores)))}</strong><br>{linked_outputs[0][1]}</p>'
+
+        for i in range(1, len(response_texts)):
+            html_output += f'<p class="ctc-box-gpt ltr"><strong>Alternative Text {i+1}: {print_stars(round(gpt_scores[i]*len(gpt_scores)))}</strong><br>{linked_outputs[i][1]}</p>'
+        
+
         gpt_text.markdown(
-                    f'<p class="ctc-box ltr"><strong>GPT Simp: </strong>{printable_output}</p>',
+                    html_output,
                     unsafe_allow_html=True
                 )
 
-        # # file_details = {"FileName":audio_file.name,"FileType":audio_file.type}
-        # # st.write(file_details)
-        # with open(audio_file.name,"wb") as f:
-        #     f.write(audio_file.getbuffer())
-        # st.success("Saved File")
+        info.info(f"GPT-3 Post Processing ...")
 
-        # # if audio_file.name.endswith('.wav'):
-        # sound = AudioSegment.from_wav(audio_file.name)
-        # # else:
-        #     # sound = AudioSegment.from_mp3(audio_file.name)
-        # sound = sound.set_channels(1)
-        # sound.export(audio_file.name, format="wav")
-
-        # # print(type(audio_file))
-        # audio_player.audio(audio_file.name)
-        # speech_text.info(f"Converting speech to text ...")
-        # result = tts.predict(audio_file.name)
-        # speech_text.markdown(
-        #     f'<p class="ctc-box ltr"><strong>Text: </strong>{result["ctc"]}</p>',
-        #     unsafe_allow_html=True
-        # )
-
-        # info.info(f"Recognizing emotion ...")
-        # plot_result(result["cf"])
-
-        # if os.path.exists(audio_file.name):
-        #     os.remove(audio_file.name)
-
-        #     info.empty()
+        plot_result([{"label": f"Output {i+1}", "score": score} for i, score in enumerate(gpt_scores)])
+        info.empty()
 
 
 
